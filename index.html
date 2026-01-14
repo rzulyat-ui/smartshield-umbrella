@@ -4,443 +4,373 @@
   <meta charset="UTF-8" />
   <title>Smart Umbrella</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(135deg,#1e3c72,#2a5298);color:#fff;display:flex;justify-content:center;align-items:center;height:100vh}
+    .card{background:#fff;color:#333;width:370px;padding:25px;border-radius:20px;box-shadow:0 10px 25px rgba(0,0,0,.3);text-align:center}
+    .logo{font-size:26px;font-weight:700;margin-bottom:10px}
+    .subtitle{font-size:14px;color:#666;margin-bottom:14px}
+    .status{font-size:18px;font-weight:700;margin:16px 0;padding:12px;border-radius:12px}
+    .connected{background:#d4f8e8;color:#1b7f5a}
+    .lost{background:#ffe0e0;color:#b00020}
+    .button{width:100%;padding:14px;font-size:16px;border:0;border-radius:12px;background:#2a5298;color:#fff;cursor:pointer;transition:.3s;margin-top:10px}
+    .button:hover{background:#1e3c72}
+    .button.secondary{background:#777}
+    .button.secondary:hover{background:#555}
+    .footer{font-size:12px;color:#888;margin-top:16px}
+    .info{font-size:13px;color:#555;background:#f6f6f6;padding:10px;border-radius:12px;margin-top:12px;text-align:left;line-height:1.35}
+    .small{font-size:12px;color:#777;margin-top:8px}
+    .warn{font-size:12px;color:#a00;margin-top:10px;display:none}
 
-    .card {
-      background: white;
-      color: #333;
-      width: 360px;
-      padding: 25px;
-      border-radius: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-      text-align: center;
-    }
+    /* Proximity meter */
+    .meterWrap{margin-top:12px;text-align:left}
+    .meterTitle{font-size:13px;color:#444;margin-bottom:6px;font-weight:700}
+    .bar{height:12px;background:#e9e9e9;border-radius:10px;overflow:hidden}
+    .fill{height:100%;width:0%;background:#2a5298;transition:width .25s ease}
+    .meterRow{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:#666}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700}
+    .near{background:#d4f8e8;color:#1b7f5a}
+    .mid{background:#fff3cd;color:#7a5a00}
+    .far{background:#ffe0e0;color:#b00020}
 
-    .logo {
-      font-size: 26px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-
-    .subtitle {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 14px;
-    }
-
-    .status {
-      font-size: 18px;
-      font-weight: bold;
-      margin: 16px 0;
-      padding: 12px;
-      border-radius: 12px;
-    }
-
-    .connected {
-      background: #d4f8e8;
-      color: #1b7f5a;
-    }
-
-    .lost {
-      background: #ffe0e0;
-      color: #b00020;
-    }
-
-    .info {
-      font-size: 13px;
-      color: #555;
-      background: #f6f6f6;
-      padding: 10px;
-      border-radius: 12px;
-      margin-top: 12px;
-      text-align: left;
-      line-height: 1.35;
-    }
-
-    .button {
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      border: none;
-      border-radius: 12px;
-      background: #2a5298;
-      color: white;
-      cursor: pointer;
-      transition: 0.3s;
-      margin-top: 10px;
-    }
-
-    .button:hover {
-      background: #1e3c72;
-    }
-
-    .button.secondary {
-      background: #777;
-    }
-    .button.secondary:hover {
-      background: #555;
-    }
-
-    .footer {
-      font-size: 12px;
-      color: #888;
-      margin-top: 16px;
-    }
-
-    .small {
-      font-size: 12px;
-      color: #777;
-      margin-top: 8px;
-    }
-
-    .warn {
-      font-size: 12px;
-      color: #a00;
-      margin-top: 10px;
-      display: none;
-    }
-
-    /* ===== Floating notification (in-page) ===== */
-    .toast {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      top: 16px;
-      background: rgba(0,0,0,0.85);
-      color: white;
-      padding: 12px 14px;
-      border-radius: 14px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.35);
-      width: min(420px, calc(100% - 32px));
-      display: none;
-      z-index: 9999;
-      text-align: left;
-    }
-
-    .toast strong {
-      display: block;
-      font-size: 14px;
-      margin-bottom: 2px;
-    }
-
-    .toast span {
-      font-size: 13px;
-      opacity: 0.95;
-    }
-
-    .toast.show {
-      display: block;
-      animation: slideDown 0.25s ease-out;
-    }
-
-    @keyframes slideDown {
-      from { transform: translateX(-50%) translateY(-10px); opacity: 0; }
-      to   { transform: translateX(-50%) translateY(0); opacity: 1; }
-    }
+    /* Floating toast */
+    .toast{position:fixed;left:50%;transform:translateX(-50%);top:16px;background:rgba(0,0,0,.85);color:#fff;padding:12px 14px;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.35);width:min(420px,calc(100% - 32px));display:none;z-index:9999;text-align:left}
+    .toast strong{display:block;font-size:14px;margin-bottom:2px}
+    .toast span{font-size:13px;opacity:.95}
+    .toast.show{display:block;animation:slideDown .25s ease-out}
+    @keyframes slideDown{from{transform:translateX(-50%) translateY(-10px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <div class="logo">☂ Smart Umbrella</div>
-    <div class="subtitle">Never forget your umbrella again</div>
+<div class="card">
+  <div class="logo">☂ Smart Umbrella</div>
+  <div class="subtitle">Never forget your umbrella again</div>
 
-    <div id="statusBox" class="status lost">Not Connected</div>
+  <div id="statusBox" class="status lost">Not Connected</div>
 
-    <button class="button" id="connectBtn">Connect Umbrella</button>
-    <button class="button secondary" id="stopBtn" style="display:none;">Stop Alarm</button>
-
-    <div class="info">
-      <b>How it works</b><br>
-      • Tap <b>Connect</b> once (browser security).<br>
-      • If umbrella disconnects/out of range → phone beeps + notification.<br>
-      • If you come back near → auto reconnect attempts.
-      <div class="small" id="hbText">Heartbeat: -</div>
-      <div class="warn" id="httpsWarn">⚠ Web Bluetooth needs HTTPS (secure website). Host this page on HTTPS.</div>
-      <div class="warn" id="browserWarn">⚠ Use Chrome/Edge on Android. iPhone Safari usually won’t work.</div>
-      <div class="warn" id="notifWarn">⚠ Notifications blocked. Tap “Enable Notifications” when asked.</div>
+  <!-- Proximity meter -->
+  <div class="meterWrap">
+    <div class="meterTitle">Proximity (real-time estimate)</div>
+    <div class="bar"><div id="meterFill" class="fill"></div></div>
+    <div class="meterRow">
+      <div>Quality: <span id="qualityText">0%</span></div>
+      <div>Status: <span id="proxBadge" class="badge far">Far</span></div>
     </div>
-
-    <div class="footer">Bluetooth-based safety alert system</div>
+    <div class="small" id="hbText">Heartbeat: -</div>
   </div>
 
-  <!-- Floating in-page notification -->
-  <div class="toast" id="toast">
-    <strong id="toastTitle">Alert</strong>
-    <span id="toastMsg">Message</span>
+  <button class="button" id="connectBtn">Connect Umbrella</button>
+  <button class="button secondary" id="stopBtn" style="display:none;">Stop Alarm</button>
+
+  <div class="info">
+    <b>How it works</b><br>
+    • Tap <b>Connect</b> once (browser security).<br>
+    • If umbrella disconnects/out of range → phone beeps + notification.<br>
+    • Proximity meter uses connection stability & heartbeat timing (best for browser demo).
+    <div class="warn" id="httpsWarn">⚠ Web Bluetooth needs HTTPS (secure website).</div>
+    <div class="warn" id="browserWarn">⚠ Use Chrome/Edge on Android. iPhone Safari won’t work.</div>
+    <div class="warn" id="notifWarn">⚠ Notifications blocked. Allow notifications.</div>
   </div>
 
-  <!-- Sound notification -->
-  <audio id="alertSound" preload="auto">
-    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
-  </audio>
+  <div class="footer">Bluetooth-based safety alert system</div>
+</div>
 
-  <script>
-    // ========= MUST MATCH YOUR ARDUINO UUIDs =========
-    const SERVICE_UUID = "12345678-1234-1234-1234-1234567890ab";
-    const CHAR_UUID    = "abcdefab-1234-5678-1234-abcdefabcdef";
-    const DEVICE_NAME  = "Smart Umbrella"; // MUST MATCH Arduino device name
+<div class="toast" id="toast">
+  <strong id="toastTitle">Alert</strong>
+  <span id="toastMsg">Message</span>
+</div>
 
-    let device = null;
-    let server = null;
-    let characteristic = null;
+<audio id="alertSound" preload="auto">
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+</audio>
 
-    const statusBox = document.getElementById("statusBox");
-    const alertSound = document.getElementById("alertSound");
-    const connectBtn = document.getElementById("connectBtn");
-    const stopBtn = document.getElementById("stopBtn");
-    const hbText = document.getElementById("hbText");
-    const httpsWarn = document.getElementById("httpsWarn");
-    const browserWarn = document.getElementById("browserWarn");
-    const notifWarn = document.getElementById("notifWarn");
+<script>
+  const SERVICE_UUID = "12345678-1234-1234-1234-1234567890ab";
+  const CHAR_UUID    = "abcdefab-1234-5678-1234-abcdefabcdef";
+  const DEVICE_NAME  = "Smart Umbrella";
 
-    const toast = document.getElementById("toast");
-    const toastTitle = document.getElementById("toastTitle");
-    const toastMsg = document.getElementById("toastMsg");
+  let device=null, server=null, characteristic=null;
 
-    let beepInterval = null;
-    let reconnectInterval = null;
-    let toastTimer = null;
+  const statusBox=document.getElementById("statusBox");
+  const alertSound=document.getElementById("alertSound");
+  const connectBtn=document.getElementById("connectBtn");
+  const stopBtn=document.getElementById("stopBtn");
+  const hbText=document.getElementById("hbText");
+  const httpsWarn=document.getElementById("httpsWarn");
+  const browserWarn=document.getElementById("browserWarn");
+  const notifWarn=document.getElementById("notifWarn");
 
-    // Prevent spamming notifications
-    let lastNotifyAt = 0;
-    const NOTIFY_COOLDOWN_MS = 6000;
+  const meterFill=document.getElementById("meterFill");
+  const qualityText=document.getElementById("qualityText");
+  const proxBadge=document.getElementById("proxBadge");
 
-    // ===== Floating notification (in-page) =====
-    function showToast(title, msg, ms = 3500) {
-      toastTitle.textContent = title;
-      toastMsg.textContent = msg;
-      toast.classList.add("show");
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove("show"), ms);
+  const toast=document.getElementById("toast");
+  const toastTitle=document.getElementById("toastTitle");
+  const toastMsg=document.getElementById("toastMsg");
+  let toastTimer=null;
+
+  let beepInterval=null;
+  let reconnectInterval=null;
+
+  // ===== Proximity estimation variables =====
+  // We estimate "quality" based on heartbeat arrival timing.
+  let lastHeartbeatAt = 0;
+  let expectedIntervalMs = 1000;   // your ESP sends HB every 1s
+  let quality = 0;                 // 0-100
+  let qualityTimer = null;
+
+  // Prevent spamming notifications
+  let lastNotifyAt=0;
+  const NOTIFY_COOLDOWN_MS=6000;
+
+  function showToast(title,msg,ms=3500){
+    toastTitle.textContent=title;
+    toastMsg.textContent=msg;
+    toast.classList.add("show");
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>toast.classList.remove("show"),ms);
+  }
+
+  function setConnectedUI(text="Connected ✅"){
+    statusBox.innerText=text;
+    statusBox.className="status connected";
+    connectBtn.style.display="none";
+    stopBtn.style.display="none";
+    stopBeeping();
+    stopReconnect();
+  }
+
+  function setNotConnectedUI(text="Not Connected"){
+    statusBox.innerText=text;
+    statusBox.className="status lost";
+    connectBtn.style.display="block";
+    stopBtn.style.display="none";
+  }
+
+  function setLostUI(){
+    statusBox.innerText="Umbrella Lost ❌";
+    statusBox.className="status lost";
+    connectBtn.style.display="none";
+    stopBtn.style.display="block";
+    startBeeping();
+    startReconnect();
+    showToast("Smart Umbrella Alert","Umbrella disconnected! Please check your umbrella.");
+    triggerSystemNotification();
+    setQuality(0);
+  }
+
+  async function ensureNotificationPermission(){
+    if(!("Notification" in window)) return false;
+    if(Notification.permission==="granted") return true;
+    if(Notification.permission==="denied"){ notifWarn.style.display="block"; return false; }
+    const p=await Notification.requestPermission();
+    if(p!=="granted"){ notifWarn.style.display="block"; return false; }
+    notifWarn.style.display="none";
+    return true;
+  }
+
+  async function triggerSystemNotification(){
+    const now=Date.now();
+    if(now-lastNotifyAt<NOTIFY_COOLDOWN_MS) return;
+    lastNotifyAt=now;
+    const ok=await ensureNotificationPermission();
+    if(!ok) return;
+    try{
+      new Notification("⚠ Smart Umbrella Alert",{
+        body:"Umbrella is far away / disconnected!",
+        tag:"smart-umbrella-alert",
+        renotify:true
+      });
+    }catch(e){ console.log(e); }
+  }
+
+  function startBeeping(){
+    if(beepInterval) return;
+    beepInterval=setInterval(()=>{
+      alertSound.currentTime=0;
+      alertSound.play().catch(()=>{});
+    },600);
+  }
+
+  function stopBeeping(){
+    if(beepInterval){ clearInterval(beepInterval); beepInterval=null; }
+    alertSound.pause(); alertSound.currentTime=0;
+  }
+
+  function onDisconnected(){
+    console.log("Disconnected");
+    setLostUI();
+  }
+
+  function setQuality(newQ){
+    quality = Math.max(0, Math.min(100, Math.round(newQ)));
+    qualityText.textContent = quality + "%";
+    meterFill.style.width = quality + "%";
+
+    // Map quality -> Near/Medium/Far (for demo)
+    if (quality >= 70) {
+      proxBadge.textContent = "Near";
+      proxBadge.className = "badge near";
+    } else if (quality >= 35) {
+      proxBadge.textContent = "Medium";
+      proxBadge.className = "badge mid";
+    } else {
+      proxBadge.textContent = "Far";
+      proxBadge.className = "badge far";
     }
+  }
 
-    function setConnectedUI(text = "Connected ✅") {
-      statusBox.innerText = text;
-      statusBox.className = "status connected";
-      connectBtn.style.display = "none";
-      stopBtn.style.display = "none";
-      stopBeeping();
-      stopReconnect();
-    }
+  function startQualityLoop(){
+    stopQualityLoop();
+    // Every 250ms, reduce quality if heartbeat is late/missing
+    qualityTimer = setInterval(() => {
+      if (!device || !device.gatt || !device.gatt.connected) return;
 
-    function setNotConnectedUI(text = "Not Connected") {
-      statusBox.innerText = text;
-      statusBox.className = "status lost";
-      connectBtn.style.display = "block";
-      stopBtn.style.display = "none";
-    }
-
-    function setLostUI() {
-      statusBox.innerText = "Umbrella Lost ❌";
-      statusBox.className = "status lost";
-      connectBtn.style.display = "none";
-      stopBtn.style.display = "block";
-      startBeeping();
-      startReconnect();
-
-      // 1) Floating notification inside the webpage (always works)
-      showToast("Smart Umbrella Alert", "Umbrella disconnected! Please check your umbrella.");
-
-      // 2) System notification (Android notification panel) - may require permission
-      triggerSystemNotification();
-    }
-
-    async function ensureNotificationPermission() {
-      if (!("Notification" in window)) return false;
-
-      if (Notification.permission === "granted") return true;
-
-      if (Notification.permission === "denied") {
-        notifWarn.style.display = "block";
-        return false;
-      }
-
-      // request permission
-      const p = await Notification.requestPermission();
-      if (p !== "granted") {
-        notifWarn.style.display = "block";
-        return false;
-      }
-      notifWarn.style.display = "none";
-      return true;
-    }
-
-    async function triggerSystemNotification() {
       const now = Date.now();
-      if (now - lastNotifyAt < NOTIFY_COOLDOWN_MS) return; // cooldown
-      lastNotifyAt = now;
-
-      const ok = await ensureNotificationPermission();
-      if (!ok) return;
-
-      try {
-        // This creates a real phone notification (notification shade / floating)
-        new Notification("⚠ Smart Umbrella Alert", {
-          body: "Umbrella is far away / disconnected!",
-          // tag prevents stacking multiple duplicates
-          tag: "smart-umbrella-alert",
-          renotify: true,
-          // icon: "icon.png" // optional if you host an icon file
-        });
-      } catch (e) {
-        // If blocked, at least show in-page toast already
-        console.log("System notification failed:", e);
+      if (lastHeartbeatAt === 0) {
+        setQuality(0);
+        return;
       }
-    }
 
-    function startBeeping() {
-      if (beepInterval) return;
-      beepInterval = setInterval(() => {
-        alertSound.currentTime = 0;
-        alertSound.play().catch(()=>{});
-      }, 600);
-    }
+      const delta = now - lastHeartbeatAt;
 
-    function stopBeeping() {
-      if (beepInterval) {
-        clearInterval(beepInterval);
-        beepInterval = null;
+      // If heartbeat is on time ~1s, quality stays high.
+      // If late, we reduce quality.
+      // This gives a smooth "distance meter" feeling.
+      let q;
+      if (delta <= expectedIntervalMs + 250) q = 90;
+      else if (delta <= expectedIntervalMs + 800) q = 70;
+      else if (delta <= expectedIntervalMs + 1500) q = 45;
+      else if (delta <= expectedIntervalMs + 2500) q = 25;
+      else q = 10;
+
+      // smooth blend
+      const blended = (quality * 0.7) + (q * 0.3);
+      setQuality(blended);
+
+      // If no heartbeat for too long, treat as "far"
+      // (disconnect event will still handle actual lost)
+      if (delta > 6000) setQuality(5);
+    }, 250);
+  }
+
+  function stopQualityLoop(){
+    if (qualityTimer) { clearInterval(qualityTimer); qualityTimer = null; }
+  }
+
+  async function connectAndSubscribe(){
+    if(!device) throw new Error("No device selected.");
+    device.removeEventListener("gattserverdisconnected", onDisconnected);
+    device.addEventListener("gattserverdisconnected", onDisconnected);
+
+    server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    characteristic = await service.getCharacteristic(CHAR_UUID);
+
+    await characteristic.startNotifications();
+    characteristic.addEventListener("characteristicvaluechanged",(event)=>{
+      const value = new TextDecoder().decode(event.target.value);
+      hbText.textContent = "Heartbeat: " + value;
+
+      // Update heartbeat time for proximity estimation
+      lastHeartbeatAt = Date.now();
+
+      // On first heartbeat after connect, jump quality up
+      if (quality < 50) setQuality(80);
+    });
+
+    lastHeartbeatAt = 0;
+    setQuality(0);
+    startQualityLoop();
+
+    setConnectedUI("Connected ✅");
+    showToast("Connected","Smart Umbrella is connected.");
+    console.log("Connected and subscribed.");
+  }
+
+  async function connectUmbrella(){
+    try{
+      if(!navigator.bluetooth){
+        alert("Web Bluetooth not supported. Use Chrome/Edge on Android.");
+        return;
       }
-      alertSound.pause();
-      alertSound.currentTime = 0;
-    }
+      await ensureNotificationPermission();
 
-    function onDisconnected() {
-      console.log("Disconnected event fired.");
-      setLostUI();
-    }
-
-    async function connectAndSubscribe() {
-      if (!device) throw new Error("No device selected.");
-
-      device.removeEventListener("gattserverdisconnected", onDisconnected);
-      device.addEventListener("gattserverdisconnected", onDisconnected);
-
-      server = await device.gatt.connect();
-      const service = await server.getPrimaryService(SERVICE_UUID);
-      characteristic = await service.getCharacteristic(CHAR_UUID);
-
-      await characteristic.startNotifications();
-      characteristic.addEventListener("characteristicvaluechanged", (event) => {
-        const value = new TextDecoder().decode(event.target.value);
-        hbText.textContent = "Heartbeat: " + value;
+      device = await navigator.bluetooth.requestDevice({
+        filters: [{ name: DEVICE_NAME }],
+        optionalServices: [SERVICE_UUID]
       });
 
-      setConnectedUI("Connected ✅");
-      showToast("Connected", "Smart Umbrella is connected.");
-      console.log("Connected and subscribed.");
+      await connectAndSubscribe();
+    }catch(error){
+      console.log(error);
+      alert("Bluetooth connection failed: " + error);
+      setNotConnectedUI("Not Connected");
+      stopQualityLoop();
+      setQuality(0);
     }
+  }
 
-    async function connectUmbrella() {
-      try {
-        if (!navigator.bluetooth) {
-          alert("Web Bluetooth not supported. Use Chrome/Edge on Android.");
+  function startReconnect(){
+    if(reconnectInterval) return;
+    reconnectInterval=setInterval(async ()=>{
+      try{
+        if(!device) return;
+        if(device.gatt && device.gatt.connected){
+          stopReconnect();
           return;
         }
-
-        // Ask notification permission during user gesture (more reliable)
-        await ensureNotificationPermission();
-
-        device = await navigator.bluetooth.requestDevice({
-          filters: [{ name: DEVICE_NAME }],
-          optionalServices: [SERVICE_UUID]
-        });
-
         await connectAndSubscribe();
-      } catch (error) {
-        console.log(error);
-        alert("Bluetooth connection failed: " + error);
-        setNotConnectedUI("Not Connected");
+        setConnectedUI("Reconnected ✅");
+        showToast("Reconnected","Umbrella reconnected successfully.");
+      }catch(err){
+        console.log("Reconnect attempt failed...");
       }
+    },2000);
+  }
+
+  function stopReconnect(){
+    if(reconnectInterval){ clearInterval(reconnectInterval); reconnectInterval=null; }
+  }
+
+  async function tryAutoConnectKnownDevice(){
+    try{
+      if(!navigator.bluetooth || !navigator.bluetooth.getDevices) return false;
+      const devices = await navigator.bluetooth.getDevices();
+      const known = devices.find(d => d.name === DEVICE_NAME);
+      if(!known) return false;
+      device = known;
+      await connectAndSubscribe();
+      setConnectedUI("Auto-connected ✅");
+      return true;
+    }catch(e){ return false; }
+  }
+
+  stopBtn.addEventListener("click",()=>{
+    stopBeeping();
+    stopBtn.style.display="none";
+    statusBox.innerText="Umbrella Lost (Alarm Stopped)";
+    showToast("Alarm stopped","Beeping stopped. Umbrella is still disconnected.");
+  });
+
+  connectBtn.addEventListener("click", connectUmbrella);
+
+  window.addEventListener("load", async ()=>{
+    const isSecure = window.isSecureContext || location.hostname==="localhost" || location.hostname==="127.0.0.1";
+    if(!isSecure) httpsWarn.style.display="block";
+
+    const ua=navigator.userAgent.toLowerCase();
+    const isIOS=/iphone|ipad|ipod/.test(ua);
+    if(isIOS) browserWarn.style.display="block";
+
+    if("Notification" in window && Notification.permission==="denied"){
+      notifWarn.style.display="block";
     }
 
-    function startReconnect() {
-      if (reconnectInterval) return;
-
-      reconnectInterval = setInterval(async () => {
-        try {
-          if (!device) return;
-
-          if (device.gatt && device.gatt.connected) {
-            stopReconnect();
-            return;
-          }
-
-          await connectAndSubscribe();
-          console.log("Reconnected!");
-          setConnectedUI("Reconnected ✅");
-          showToast("Reconnected", "Umbrella reconnected successfully.");
-        } catch (err) {
-          console.log("Reconnect attempt failed...");
-        }
-      }, 2000);
-    }
-
-    function stopReconnect() {
-      if (reconnectInterval) {
-        clearInterval(reconnectInterval);
-        reconnectInterval = null;
-      }
-    }
-
-    // Best-effort auto-connect to previously approved device (works on some Chromium versions)
-    async function tryAutoConnectKnownDevice() {
-      try {
-        if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return false;
-
-        const devices = await navigator.bluetooth.getDevices();
-        const known = devices.find(d => d.name === DEVICE_NAME);
-        if (!known) return false;
-
-        device = known;
-        await connectAndSubscribe();
-        setConnectedUI("Auto-connected ✅");
-        return true;
-      } catch (e) {
-        return false;
-      }
-    }
-
-    stopBtn.addEventListener("click", () => {
-      stopBeeping();
-      stopBtn.style.display = "none";
-      statusBox.innerText = "Umbrella Lost (Alarm Stopped)";
-      showToast("Alarm stopped", "Beeping stopped. Umbrella is still disconnected.");
-    });
-
-    connectBtn.addEventListener("click", connectUmbrella);
-
-    window.addEventListener("load", async () => {
-      // Web Bluetooth requires HTTPS except localhost
-      const isSecure = window.isSecureContext || location.hostname === "localhost" || location.hostname === "127.0.0.1";
-      if (!isSecure) httpsWarn.style.display = "block";
-
-      // iOS Safari warning
-      const ua = navigator.userAgent.toLowerCase();
-      const isIOS = /iphone|ipad|ipod/.test(ua);
-      if (isIOS) browserWarn.style.display = "block";
-
-      // Show warning if notifications blocked
-      if ("Notification" in window && Notification.permission === "denied") {
-        notifWarn.style.display = "block";
-      }
-
-      const ok = await tryAutoConnectKnownDevice();
-      if (!ok) setNotConnectedUI("Not Connected");
-    });
-  </script>
+    const ok = await tryAutoConnectKnownDevice();
+    if(!ok) setNotConnectedUI("Not Connected");
+  });
+</script>
 
 </body>
 </html>
