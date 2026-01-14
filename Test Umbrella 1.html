@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Smart Umbrella</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: white;
+      color: #333;
+      width: 360px;
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 14px;
+    }
+
+    .status {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 16px 0;
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .connected {
+      background: #d4f8e8;
+      color: #1b7f5a;
+    }
+
+    .lost {
+      background: #ffe0e0;
+      color: #b00020;
+    }
+
+    .info {
+      font-size: 13px;
+      color: #555;
+      background: #f6f6f6;
+      padding: 10px;
+      border-radius: 12px;
+      margin-top: 12px;
+      text-align: left;
+      line-height: 1.35;
+    }
+
+    .button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border: none;
+      border-radius: 12px;
+      background: #2a5298;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 10px;
+    }
+
+    .button:hover {
+      background: #1e3c72;
+    }
+
+    .button.secondary {
+      background: #777;
+    }
+    .button.secondary:hover {
+      background: #555;
+    }
+
+    .footer {
+      font-size: 12px;
+      color: #888;
+      margin-top: 16px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #777;
+      margin-top: 8px;
+    }
+
+    .warn {
+      font-size: 12px;
+      color: #a00;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="logo">☂ Smart Umbrella</div>
+    <div class="subtitle">Never forget your umbrella again</div>
+
+    <div id="statusBox" class="status lost">Not Connected</div>
+
+    <button class="button" id="connectBtn">Connect Umbrella</button>
+    <button class="button secondary" id="stopBtn" style="display:none;">Stop Alarm</button>
+
+    <div class="info">
+      <b>How it works</b><br>
+      • Tap <b>Connect</b> once (browser security).<br>
+      • If umbrella disconnects/out of range → phone beeps + notification.<br>
+      • If you come back near → auto reconnect attempts.
+      <div class="small" id="hbText">Heartbeat: -</div>
+      <div class="warn" id="httpsWarn">⚠ Web Bluetooth needs HTTPS (secure website). Host this page on HTTPS.</div>
+    </div>
+
+    <div class="footer">Bluetooth-based safety alert system</div>
+  </div>
+
+  <!-- Sound notification -->
+  <audio id="alertSound" preload="auto">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+  </audio>
+
+  <script>
+    // ===== MUST MATCH YOUR ARDUINO CODE =====
+    const SERVICE_UUID = "12345678-1234-1234-1234-1234567890ab";
+    const CHAR_UUID    = "abcdefab-1234-5678-1234-abcdefabcdef";
+
+    let device = null;
+    let server = null;
+    let characteristic = null;
+
+    const statusBox = document.getElementById("statusBox");
+    const alertSound = document.getElementById("alertSound");
+    const connectBtn = document.getElementById("connectBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const hbText = document.getElementById("hbText");
+    const httpsWarn = document.getElementById("httpsWarn");
+
+    let beepInterval = null;
+    let reconnectInterval = null;
+
+    function setConnectedUI(text = "Connected ✅") {
+      statusBox.innerText = text;
+      statusBox.className = "status connected";
+      connectBtn.style.display = "none";
+      stopBtn.style.display = "none";
+      stopBeeping();
+      stopReconnect();
+    }
+
+    function setNotConnectedUI(text = "Not Connected") {
+      statusBox.innerText = text;
+      statusBox.className = "status lost";
+      connectBtn.style.display = "block";
+      stopBtn.style.display = "none";
+    }
+
+    function setLostUI() {
+      statusBox.innerText = "Umbrella Lost ❌";
+      statusBox.className = "status lost";
+      connectBtn.style.display = "none";
+      stopBtn.style.display = "block";
+      startBeeping();
+      startReconnect();
+      triggerNotification();
+    }
+
+    function triggerNotification() {
+      if (!("Notification" in window)) return;
+
+      if (Notification.permission === "granted") {
+        new Notification("⚠ Smart Umbrella Alert", { body: "Umbrella is far away / disconnected!" });
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            new Notification("⚠ Smart Umbrella Alert", { body: "Umbrella is far away / disconnected!" });
+          }
+        });
+      }
+    }
+
+    function startBeeping() {
+      if (beepInterval) return;
+      beepInterval = setInterval(() => {
+        alertSound.currentTime = 0;
+        alertSound.play().catch(()=>{});
+      }, 600);
+    }
+
+    function stopBeeping() {
+      if (beepInterval) {
+        clearInterval(beepInterval);
+        beepInterval = null;
+      }
+      alertSound.pause();
+      alertSound.currentTime = 0;
+    }
+
+    async function connectAndSubscribe() {
+      if (!device) throw new Error("No device selected.");
+
+      device.removeEventListener("gattserverdisconnected", onDisconnected);
+      device.addEventListener("gattserverdisconnected", onDisconnected);
+
+      server = await device.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+      characteristic = await service.getCharacteristic(CHAR_UUID);
+
+      await characteristic.startNotifications();
+      characteristic.addEventListener("characteristicvaluechanged", (event) => {
+        const value = new TextDecoder().decode(event.target.value);
+        hbText.textContent = "Heartbeat: " + value;
+      });
+
+      setConnectedUI("Connected ✅");
+      console.log("Connected and subscribed.");
+    }
+
+    async function connectUmbrella() {
+      try {
+        if (!navigator.bluetooth) {
+          alert("Web Bluetooth not supported. Use Chrome/Edge on Android.");
+          return;
+        }
+
+        // user click required
+        device = await navigator.bluetooth.requestDevice({
+          filters: [{ services: [SERVICE_UUID] }],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        await connectAndSubscribe();
+
+      } catch (error) {
+        console.log(error);
+        alert("Bluetooth connection failed: " + error);
+        setNotConnectedUI("Not Connected");
+      }
+    }
+
+    function onDisconnected() {
+      console.log("Disconnected event fired.");
+      setLostUI();
+    }
+
+    function startReconnect() {
+      if (reconnectInterval) return;
+
+      reconnectInterval = setInterval(async () => {
+        try {
+          if (!device) return;
+
+          if (device.gatt && device.gatt.connected) {
+            stopReconnect();
+            return;
+          }
+
+          await connectAndSubscribe();
+          console.log("Reconnected!");
+          setConnectedUI("Reconnected ✅");
+
+        } catch (err) {
+          console.log("Reconnect attempt failed...");
+        }
+      }, 2000);
+    }
+
+    function stopReconnect() {
+      if (reconnectInterval) {
+        clearInterval(reconnectInterval);
+        reconnectInterval = null;
+      }
+    }
+
+    // Best-effort auto-connect to previously approved device (works on some Chromium versions)
+    async function tryAutoConnectKnownDevice() {
+      try {
+        if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return false;
+
+        const devices = await navigator.bluetooth.getDevices();
+        const known = devices.find(d => d.name === "Smart Umbrella");
+        if (!known) return false;
+
+        device = known;
+        await connectAndSubscribe();
+        setConnectedUI("Auto-connected ✅");
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    stopBtn.addEventListener("click", () => {
+      stopBeeping();
+      stopBtn.style.display = "none";
+      statusBox.innerText = "Umbrella Lost (Alarm Stopped)";
+    });
+
+    connectBtn.addEventListener("click", connectUmbrella);
+
+    window.addEventListener("load", async () => {
+      // Web Bluetooth requires HTTPS except localhost
+      const isSecure = window.isSecureContext || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+      if (!isSecure) httpsWarn.style.display = "block";
+
+      const ok = await tryAutoConnectKnownDevice();
+      if (!ok) {
+        setNotConnectedUI("Not Connected");
+      }
+    });
+  </script>
+
+</body>
+</html>
