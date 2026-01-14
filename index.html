@@ -130,6 +130,7 @@
       • If you come back near → auto reconnect attempts.
       <div class="small" id="hbText">Heartbeat: -</div>
       <div class="warn" id="httpsWarn">⚠ Web Bluetooth needs HTTPS (secure website). Host this page on HTTPS.</div>
+      <div class="warn" id="browserWarn">⚠ Use Chrome/Edge on Android. iPhone Safari usually won’t work.</div>
     </div>
 
     <div class="footer">Bluetooth-based safety alert system</div>
@@ -141,9 +142,10 @@
   </audio>
 
   <script>
-    // ===== MUST MATCH YOUR ARDUINO CODE =====
+    // ========= MUST MATCH YOUR ARDUINO UUIDs =========
     const SERVICE_UUID = "12345678-1234-1234-1234-1234567890ab";
     const CHAR_UUID    = "abcdefab-1234-5678-1234-abcdefabcdef";
+    const DEVICE_NAME  = "Smart Umbrella"; // MUST MATCH Arduino device name
 
     let device = null;
     let server = null;
@@ -155,6 +157,7 @@
     const stopBtn = document.getElementById("stopBtn");
     const hbText = document.getElementById("hbText");
     const httpsWarn = document.getElementById("httpsWarn");
+    const browserWarn = document.getElementById("browserWarn");
 
     let beepInterval = null;
     let reconnectInterval = null;
@@ -216,6 +219,11 @@
       alertSound.currentTime = 0;
     }
 
+    function onDisconnected() {
+      console.log("Disconnected event fired.");
+      setLostUI();
+    }
+
     async function connectAndSubscribe() {
       if (!device) throw new Error("No device selected.");
 
@@ -243,24 +251,18 @@
           return;
         }
 
-        // user click required
+        // ✅ IMPORTANT FIX: use NAME filter (more reliable than services filter)
         device = await navigator.bluetooth.requestDevice({
-          filters: [{ services: [SERVICE_UUID] }],
+          filters: [{ name: DEVICE_NAME }],
           optionalServices: [SERVICE_UUID]
         });
 
         await connectAndSubscribe();
-
       } catch (error) {
         console.log(error);
         alert("Bluetooth connection failed: " + error);
         setNotConnectedUI("Not Connected");
       }
-    }
-
-    function onDisconnected() {
-      console.log("Disconnected event fired.");
-      setLostUI();
     }
 
     function startReconnect() {
@@ -278,7 +280,6 @@
           await connectAndSubscribe();
           console.log("Reconnected!");
           setConnectedUI("Reconnected ✅");
-
         } catch (err) {
           console.log("Reconnect attempt failed...");
         }
@@ -298,7 +299,7 @@
         if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return false;
 
         const devices = await navigator.bluetooth.getDevices();
-        const known = devices.find(d => d.name === "Smart Umbrella");
+        const known = devices.find(d => d.name === DEVICE_NAME);
         if (!known) return false;
 
         device = known;
@@ -323,10 +324,13 @@
       const isSecure = window.isSecureContext || location.hostname === "localhost" || location.hostname === "127.0.0.1";
       if (!isSecure) httpsWarn.style.display = "block";
 
+      // iOS Safari warning
+      const ua = navigator.userAgent.toLowerCase();
+      const isIOS = /iphone|ipad|ipod/.test(ua);
+      if (isIOS) browserWarn.style.display = "block";
+
       const ok = await tryAutoConnectKnownDevice();
-      if (!ok) {
-        setNotConnectedUI("Not Connected");
-      }
+      if (!ok) setNotConnectedUI("Not Connected");
     });
   </script>
 
